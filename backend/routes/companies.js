@@ -89,5 +89,35 @@ router.get('/search', verifyToken, async (req, res) => {
     res.status(500).json({ error: 'Search failed' });
   }
 });
+// ✅ PUT: Create or update company for logged-in user
+router.put('/', verifyToken, async (req, res) => {
+  const user_id = req.user.userId;
+  const { name, industry, description, logo_url } = req.body;
+
+  try {
+    // Check if a company already exists for the user
+    const existing = await pool.query('SELECT * FROM companies2 WHERE user_id = $1', [user_id]);
+
+    if (existing.rows.length > 0) {
+      // Update existing company
+      const updated = await pool.query(
+        'UPDATE companies2 SET name = $1, industry = $2, description = $3, logo_url = $4 WHERE user_id = $5 RETURNING *',
+        [name, industry, description, logo_url, user_id]
+      );
+      return res.status(200).json(updated.rows[0]);
+    } else {
+      // Create new company
+      const created = await pool.query(
+        'INSERT INTO companies2 (name, industry, description, logo_url, user_id) VALUES ($1, $2, $3, $4, $5) RETURNING *',
+        [name, industry, description, logo_url, user_id]
+      );
+      return res.status(201).json(created.rows[0]);
+    }
+  } catch (err) {
+    console.error("❌ Error in PUT /companies:", err);
+    res.status(500).json({ error: 'Failed to save company' });
+  }
+});
+
 
 module.exports = router;
