@@ -119,5 +119,21 @@ router.put('/', verifyToken, async (req, res) => {
   }
 });
 
+// ✅ GET: Return company info for the logged-in user (used by Dashboard)
+router.get('/me', verifyToken, async (req, res) => {
+  const user_id = req.user.userId;
+
+  try {
+    const result = await pool.query('SELECT * FROM companies2 WHERE user_id = $1', [user_id]);
+    if (result.rows.length === 0) {
+      return res.status(404).json({ message: 'No company found for this user' });
+    }
+    res.json(result.rows[0]);
+  } catch (err) {
+    console.error('❌ Error fetching /companies/me:', err);
+    res.status(500).json({ error: 'Internal server error' });
+  }
+});
+
 
 module.exports = router;
